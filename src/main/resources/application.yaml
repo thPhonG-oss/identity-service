@@ -6,10 +6,16 @@ spring:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+  flyway:
+    # Flyway creates this schema if missing and keeps its history table here too.
+    schemas: identity
   jpa:
     hibernate:
       ddl-auto: validate
     open-in-view: false
+    properties:
+      hibernate:
+        default_schema: identity
 
 app:
   jwt:
