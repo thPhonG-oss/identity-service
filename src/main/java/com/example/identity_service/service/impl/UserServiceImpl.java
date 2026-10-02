@@ -1,5 +1,6 @@
 package com.example.identity_service.service.impl;
 
+import com.example.identity_service.exception.ErrorCode;
 import com.example.identity_service.exception.GeneralException;
 import com.example.identity_service.mapper.UserMapper;
 import com.example.identity_service.model.User;
@@ -23,7 +24,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDtoResponse getUserInfo(UUID userId) {
-        User user  = userRepository.findById(userId).orElseThrow(() -> new GeneralException("User not found"));
+        User user  = userRepository.findById(userId).orElseThrow(() -> new GeneralException(ErrorCode.USER_NOT_FOUND));
 
         return userMapper.toUserReponse(user);
     }
