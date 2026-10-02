@@ -1,6 +1,6 @@
 package com.example.identity_service.controller;
 
-import com.example.identity_service.model.dto.response.UserDtoResponse;
+import com.example.identity_service.model.dto.response.UserResponse;
 import com.example.identity_service.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +23,7 @@ public class UserController {
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<UserDtoResponse> getUserInfo(@PathVariable UUID userId){
+    public ResponseEntity<UserResponse> getUserInfo(@PathVariable UUID userId){
         return ResponseEntity.ok(
           userService.getUserInfo(userId)
         );

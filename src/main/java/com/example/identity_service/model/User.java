@@ -44,6 +44,9 @@ public class User {
     @Column(nullable = false)
     private String email;
 
+    @Column(name = "use_email_as_login")
+    private boolean useEmailAsLogin;
+
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
