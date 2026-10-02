@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/identity}
+    username: ${DB_USERNAME:identity}
+    password: ${DB_PASSWORD:identity}
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+
+app:
+  jwt:
+    # HS256 needs a secret of at least 32 bytes. This default is for local dev only.
+    secret: ${JWT_SECRET:dev-only-secret-change-me-at-least-32-bytes!!}
+
+logging:
+  level:
+    com.example.identity_service: debug
+    org.springframework.security: debug
+    org.hibernate.SQL: debug
+    # Logs bound parameter values (may include sensitive data), keep it in dev only.
+    org.hibernate.orm.jdbc.bind: trace
