@@ -25,7 +25,4 @@ public class UserCreationRequest {
     @NotBlank(message = "Password is required")
     @StrongPassword
     private String password;
-
-    @NotNull(message = "List of roles are required")
-    private List<RoleEnum> roles;
 }

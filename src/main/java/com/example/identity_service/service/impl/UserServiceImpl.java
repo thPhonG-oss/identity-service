@@ -50,9 +50,7 @@ public class UserServiceImpl implements UserService {
         final String username = userCreationRequest.getUsername();
         final String email = userCreationRequest.getEmail();
         final String password = userCreationRequest.getPassword();
-        final List<RoleEnum> roleEnumList = userCreationRequest.getRoles();
 
-        final Set<Role> roles = convertRoleEnumToRole(roleEnumList);
         final Set<Role> defaultRoleList = Set.of(roleService.getRoleByName(RoleEnum.USER));
 
         if(userRepository.existsByUsername(username)) {
@@ -69,29 +67,12 @@ public class UserServiceImpl implements UserService {
         user.setPasswordHash(passwordEncoder.encode(password));
 
         // handle role assignment
-        if(roleEnumList.isEmpty() || roles.isEmpty()) {
-            log.warn("The role list when creating user is empty");
-            user.setRoles(defaultRoleList);
-        } else {
-            user.setRoles(roles);
-        }
+        user.setRoles(defaultRoleList);
 
         User savedUser = userRepository.save(user);
 
         log.info("Create user successfully with userId: {}", savedUser.getId());
 
         return userMapper.toUserReponse(user);
-    }
-
-    private Set<Role> convertRoleEnumToRole(List<RoleEnum> roleEnums) {
-        return roleEnums.stream()
-                .map(roleEnum -> {
-                    try {
-                        return roleService.getRoleByName(roleEnum);
-                    } catch (GeneralException ex) {
-                        log.warn("Can not find the role: {}", roleEnum);
-                    }
-                    return null;
-                }).collect(Collectors.toSet());
     }
 }
