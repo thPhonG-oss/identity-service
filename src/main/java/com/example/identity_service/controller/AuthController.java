@@ -3,6 +3,7 @@ package com.example.identity_service.controller;
 import com.example.identity_service.model.dto.request.UserCreationRequest;
 import com.example.identity_service.model.dto.response.UserResponse;
 import com.example.identity_service.service.authentication.AuthenticationService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,7 +22,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<UserResponse> register(@RequestBody UserCreationRequest userCreationRequest) {
+    public ResponseEntity<UserResponse> register(@RequestBody @Valid UserCreationRequest userCreationRequest) {
         return new ResponseEntity<>(
                 authenticationService.register(userCreationRequest),
                 HttpStatus.CREATED

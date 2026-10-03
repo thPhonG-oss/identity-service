@@ -27,7 +27,7 @@ public enum ErrorCode {
     RESOURCE_NOT_FOUND(9003, HttpStatus.NOT_FOUND, "Resource not found"),
     METHOD_NOT_ALLOWED(9004, HttpStatus.METHOD_NOT_ALLOWED, "Method not allowed"),
     UNSUPPORTED_MEDIA_TYPE(9005, HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported media type"),
-    ;
+    ROLE_NOT_FOUND(9006, HttpStatus.BAD_REQUEST, "Role not found");
 
     private final int code;
     private final HttpStatus httpStatus;
