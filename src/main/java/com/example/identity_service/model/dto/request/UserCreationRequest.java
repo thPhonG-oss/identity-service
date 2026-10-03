@@ -1,12 +1,12 @@
 package com.example.identity_service.model.dto.request;
 
+import com.example.identity_service.model.RoleEnum;
 import com.example.identity_service.validation.StrongPassword;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
+
+import java.util.List;
 
 @Getter
 public class UserCreationRequest {
@@ -25,4 +25,7 @@ public class UserCreationRequest {
     @NotBlank(message = "Password is required")
     @StrongPassword
     private String password;
+
+    @NotNull(message = "List of roles are required")
+    private List<RoleEnum> roles;
 }
