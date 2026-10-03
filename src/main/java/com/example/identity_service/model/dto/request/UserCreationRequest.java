@@ -1,12 +1,10 @@
 package com.example.identity_service.model.dto.request;
 
-import com.example.identity_service.model.RoleEnum;
 import com.example.identity_service.validation.StrongPassword;
 
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 
-import java.util.List;
 
 @Getter
 public class UserCreationRequest {

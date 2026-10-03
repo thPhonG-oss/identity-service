@@ -51,8 +51,6 @@ public class UserServiceImpl implements UserService {
         final String email = userCreationRequest.getEmail();
         final String password = userCreationRequest.getPassword();
 
-        final Set<Role> defaultRoleList = Set.of(roleService.getRoleByName(RoleEnum.USER));
-
         if(userRepository.existsByUsername(username)) {
             throw new GeneralException(ErrorCode.USERNAME_ALREADY_EXISTS);
         }
@@ -67,12 +65,12 @@ public class UserServiceImpl implements UserService {
         user.setPasswordHash(passwordEncoder.encode(password));
 
         // handle role assignment
-        user.setRoles(defaultRoleList);
+        user.getRoles().add(roleService.getRoleByName(RoleEnum.USER));
 
         User savedUser = userRepository.save(user);
 
         log.info("Create user successfully with userId: {}", savedUser.getId());
 
-        return userMapper.toUserReponse(user);
+        return userMapper.toUserReponse(savedUser);
     }
 }
