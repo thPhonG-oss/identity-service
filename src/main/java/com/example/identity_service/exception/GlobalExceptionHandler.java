@@ -11,7 +11,6 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -38,7 +37,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     // Names of the unique indexes created in V1__create_users_and_roles.sql.
     private static final Map<String, ErrorCode> UNIQUE_CONSTRAINT_ERRORS = Map.of(
-            "uq_users_username_lower", ErrorCode.USERNAME_ALREADY_EXISTS,
             "uq_users_email_lower", ErrorCode.EMAIL_ALREADY_EXISTS);
 
     @ExceptionHandler(GeneralException.class)
@@ -46,14 +44,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ErrorCode errorCode = ex.getErrorCode();
         log.debug("Business error {}: {}", errorCode, ex.getMessage());
         return build(errorCode.getHttpStatus(), errorCode, ex.getMessage(), null, HttpHeaders.EMPTY, request);
-    }
-
-    // Always answer with the same message, whether the username or the password was wrong.
-    @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<Object> handleBadCredentials(BadCredentialsException ex, WebRequest request) {
-        log.debug("Bad credentials: {}", ex.getMessage());
-        ErrorCode errorCode = ErrorCode.INVALID_CREDENTIALS;
-        return build(errorCode.getHttpStatus(), errorCode, errorCode.getMessage(), null, HttpHeaders.EMPTY, request);
     }
 
     @ExceptionHandler(AuthenticationException.class)
@@ -89,7 +79,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             return build(internal.getHttpStatus(), internal, internal.getMessage(), null, HttpHeaders.EMPTY, request);
         }
 
-        // Log the constraint only: the database message contains the duplicated value (username, email).
+        // Log the constraint only: the database message contains the duplicated value (the email).
         log.warn("Unique constraint violated: {}", constraintName);
         return build(errorCode.getHttpStatus(), errorCode, errorCode.getMessage(), null, HttpHeaders.EMPTY, request);
     }

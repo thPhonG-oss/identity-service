@@ -23,7 +23,7 @@ import com.example.identity_service.repository.UserRepository;
 // Reproduces the registration race against the real Postgres: the duplicate is only rejected when the
 // transaction commits, exactly like UserServiceImpl.createUser. That is why each save runs in its own
 // committed transaction instead of the rolled-back transaction a @DataJpaTest normally wraps tests in.
-// Test data uses random names and is deleted afterwards, so the dev database is left as it was.
+// Test data uses a random email and is deleted afterwards, so the dev database is left as it was.
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("dev")
@@ -36,36 +36,21 @@ class ConstraintNameExtractionTest {
     @Autowired
     private PlatformTransactionManager transactionManager;
 
-    private final String suffix = UUID.randomUUID().toString().substring(0, 8);
-    private final String username = "race_" + suffix;
-    private final String email = "race_" + suffix + "@example.com";
+    private final String email = "race_" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
 
     @AfterEach
     void cleanUp() {
         inOwnTransaction(() -> {
-            userRepository.findByUsername(username).ifPresent(userRepository::delete);
-            userRepository.findByUsername(username + "_2").ifPresent(userRepository::delete);
+            userRepository.findByEmail(email).ifPresent(userRepository::delete);
             return null;
         });
     }
 
     @Test
-    void duplicateUsernameReportsTheUsernameIndex() {
-        inOwnTransaction(() -> userRepository.save(newUser(username, email)));
+    void duplicateEmailIgnoringCaseReportsTheEmailIndex() {
+        inOwnTransaction(() -> userRepository.save(newUser(email)));
 
-        assertThatThrownBy(() -> inOwnTransaction(
-                () -> userRepository.save(newUser(username.toUpperCase(), "other_" + email))))
-                .isInstanceOf(DataIntegrityViolationException.class)
-                .satisfies(ex -> assertThat(GlobalExceptionHandler.constraintNameOf(ex))
-                        .isEqualTo("uq_users_username_lower"));
-    }
-
-    @Test
-    void duplicateEmailReportsTheEmailIndex() {
-        inOwnTransaction(() -> userRepository.save(newUser(username, email)));
-
-        assertThatThrownBy(() -> inOwnTransaction(
-                () -> userRepository.save(newUser(username + "_2", email.toUpperCase()))))
+        assertThatThrownBy(() -> inOwnTransaction(() -> userRepository.save(newUser(email.toUpperCase()))))
                 .isInstanceOf(DataIntegrityViolationException.class)
                 .satisfies(ex -> assertThat(GlobalExceptionHandler.constraintNameOf(ex))
                         .isEqualTo("uq_users_email_lower"));
@@ -75,7 +60,7 @@ class ConstraintNameExtractionTest {
         return new TransactionTemplate(transactionManager).execute(status -> work.get());
     }
 
-    private static User newUser(String username, String email) {
-        return User.builder().username(username).email(email).passwordHash("{test}not-a-real-hash").build();
+    private static User newUser(String email) {
+        return User.builder().email(email).passwordHash("{test}not-a-real-hash").build();
     }
 }

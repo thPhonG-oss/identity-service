@@ -35,16 +35,6 @@ class DataIntegrityViolationHandlerTest {
     private UserService userService;
 
     @Test
-    void duplicateUsernameIsConflict() throws Exception {
-        failWithConstraint("uq_users_username_lower");
-
-        mockMvc.perform(get(USER_URL, UUID.randomUUID()))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.code").value(1002))
-                .andExpect(jsonPath("$.message").value("Username already exists"));
-    }
-
-    @Test
     void duplicateEmailIsConflict() throws Exception {
         failWithConstraint("uq_users_email_lower");
 

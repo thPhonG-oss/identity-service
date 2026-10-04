@@ -47,20 +47,14 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(rollbackFor = Exception.class, propagation = Propagation.REQUIRED)
     public UserResponse createUser(UserCreationRequest userCreationRequest) {
-        final String username = userCreationRequest.getUsername();
         final String email = userCreationRequest.getEmail();
         final String password = userCreationRequest.getPassword();
-
-        if(userRepository.existsByUsername(username)) {
-            throw new GeneralException(ErrorCode.USERNAME_ALREADY_EXISTS);
-        }
 
         if(userRepository.existsByEmail(email)) {
             throw new GeneralException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
         final User user = new User();
-        user.setUsername(username);
         user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(password));
 

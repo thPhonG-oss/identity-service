@@ -1,5 +1,7 @@
 package com.example.identity_service.controller;
 
+import com.example.identity_service.controller.dto.LoginRequest;
+import com.example.identity_service.controller.dto.LoginResponse;
 import com.example.identity_service.model.dto.request.UserCreationRequest;
 import com.example.identity_service.model.dto.response.UserResponse;
 import com.example.identity_service.service.authentication.AuthenticationService;
@@ -21,6 +23,11 @@ public class AuthController {
 
     public AuthController(AuthenticationService authenticationService) {
         this.authenticationService = authenticationService;
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest loginRequest) {
+        return ResponseEntity.ok(authenticationService.login(loginRequest));
     }
 
     @PostMapping("/register")
