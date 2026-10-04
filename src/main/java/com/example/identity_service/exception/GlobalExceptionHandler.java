@@ -2,13 +2,15 @@ package com.example.identity_service.exception;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -33,19 +35,15 @@ import lombok.extern.slf4j.Slf4j;
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
+    // Names of the unique indexes created in V1__create_users_and_roles.sql.
+    private static final Map<String, ErrorCode> UNIQUE_CONSTRAINT_ERRORS = Map.of(
+            "uq_users_email_lower", ErrorCode.EMAIL_ALREADY_EXISTS);
+
     @ExceptionHandler(GeneralException.class)
     public ResponseEntity<Object> handleGeneralException(GeneralException ex, WebRequest request) {
         ErrorCode errorCode = ex.getErrorCode();
         log.debug("Business error {}: {}", errorCode, ex.getMessage());
         return build(errorCode.getHttpStatus(), errorCode, ex.getMessage(), null, HttpHeaders.EMPTY, request);
-    }
-
-    // Always answer with the same message, whether the username or the password was wrong.
-    @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<Object> handleBadCredentials(BadCredentialsException ex, WebRequest request) {
-        log.debug("Bad credentials: {}", ex.getMessage());
-        ErrorCode errorCode = ErrorCode.INVALID_CREDENTIALS;
-        return build(errorCode.getHttpStatus(), errorCode, errorCode.getMessage(), null, HttpHeaders.EMPTY, request);
     }
 
     @ExceptionHandler(AuthenticationException.class)
@@ -61,6 +59,28 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<Object> handleAccessDenied(AccessDeniedException ex, WebRequest request) {
         log.debug("Access denied: {}", ex.getMessage());
         ErrorCode errorCode = ErrorCode.ACCESS_DENIED;
+        return build(errorCode.getHttpStatus(), errorCode, errorCode.getMessage(), null, HttpHeaders.EMPTY, request);
+    }
+
+    // Last line of defence for registration races: two requests pass the existsBy... checks at the same
+    // time and the database unique index rejects the second insert, usually at commit time.
+    // Only constraints listed in UNIQUE_CONSTRAINT_ERRORS are the client's fault (409). Any other
+    // integrity violation (NOT NULL, foreign key, a new unmapped unique index) is a bug on our side:
+    // answer 500 and log it, so a missing mapping is noticed instead of hidden behind a vague 409.
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Object> handleDataIntegrityViolation(DataIntegrityViolationException ex,
+            WebRequest request) {
+        String constraintName = constraintNameOf(ex);
+        ErrorCode errorCode = constraintName == null ? null : UNIQUE_CONSTRAINT_ERRORS.get(constraintName);
+
+        if (errorCode == null) {
+            log.error("Unexpected data integrity violation, constraint: {}", constraintName, ex);
+            ErrorCode internal = ErrorCode.INTERNAL_ERROR;
+            return build(internal.getHttpStatus(), internal, internal.getMessage(), null, HttpHeaders.EMPTY, request);
+        }
+
+        // Log the constraint only: the database message contains the duplicated value (the email).
+        log.warn("Unique constraint violated: {}", constraintName);
         return build(errorCode.getHttpStatus(), errorCode, errorCode.getMessage(), null, HttpHeaders.EMPTY, request);
     }
 
@@ -102,6 +122,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ErrorResponse body = new ErrorResponse(
                 status.value(), errorCode.getCode(), message, Instant.now(), pathOf(request), errors);
         return ResponseEntity.status(status).headers(headers).body(body);
+    }
+
+    /** Name of the violated constraint, taken from the Hibernate exception somewhere in the cause chain. */
+    static String constraintNameOf(Throwable throwable) {
+        for (Throwable cause = throwable; cause != null; cause = cause.getCause()) {
+            if (cause instanceof ConstraintViolationException violation) {
+                return violation.getConstraintName();
+            }
+        }
+        return null;
     }
 
     private static String pathOf(WebRequest request) {

@@ -38,14 +38,8 @@ public class User {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false, length = 50)
-    private String username;
-
     @Column(nullable = false)
     private String email;
-
-    @Column(name = "use_email_as_login")
-    private boolean useEmailAsLogin;
 
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;

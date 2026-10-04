@@ -9,14 +9,15 @@ spring:
         format_sql: true
 
 app:
-  jwt:
-    # HS256 needs a secret of at least 32 bytes. This default is for local dev only.
-    secret: ${JWT_SECRET:dev-only-secret-change-me-at-least-32-bytes!!}
+  security:
+    jwt:
+      # HS256 needs a secret of at least 32 bytes. This default is for local dev only.
+      secret: ${JWT_SECRET:dev-only-secret-change-me-at-least-32-bytes!!}
 
 logging:
   level:
     com.example.identity_service: debug
-    org.springframework.security: debug
+    org.springframework.security: trace
     org.hibernate.SQL: debug
     # Logs bound parameter values (may include sensitive data), keep it in dev only.
     org.hibernate.orm.jdbc.bind: trace
