@@ -19,6 +19,8 @@ public enum ErrorCode {
     ACCESS_DENIED(2003, HttpStatus.FORBIDDEN, "You do not have permission to access this resource"),
     INVALID_TOKEN(2004, HttpStatus.UNAUTHORIZED, "Token is invalid"),
     TOKEN_EXPIRED(2005, HttpStatus.UNAUTHORIZED, "Token has expired"),
+    // One code for unknown, expired, reused and revoked refresh tokens, so a client cannot tell them apart.
+    INVALID_REFRESH_TOKEN(2006, HttpStatus.UNAUTHORIZED, "Refresh token is invalid or expired"),
 
     // 9xxx: general
     INTERNAL_ERROR(9000, HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error"),

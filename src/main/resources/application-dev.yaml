@@ -13,6 +13,14 @@ app:
     jwt:
       # HS256 needs a secret of at least 32 bytes. This default is for local dev only.
       secret: ${JWT_SECRET:dev-only-secret-change-me-at-least-32-bytes!!}
+    # Local development runs over plain http, where a Secure cookie would not be stored by every browser.
+    refresh-cookie:
+      secure: false
+    # Typical dev servers of an SPA (Vite, Create React App / Next).
+    cors:
+      allowed-origins:
+        - http://localhost:5173
+        - http://localhost:3000
 
 logging:
   level:

@@ -5,7 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -20,7 +22,6 @@ import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.example.identity_service.controller.dto.LoginRequest;
-import com.example.identity_service.controller.dto.LoginResponse;
 import com.example.identity_service.exception.ErrorCode;
 import com.example.identity_service.exception.GeneralException;
 import com.example.identity_service.model.JwtProperties;
@@ -45,20 +46,23 @@ class AuthenticationServiceImplLoginTest {
     private final JwtServiceImpl jwtService = new JwtServiceImpl(PROPERTIES);
     private final UUID userId = UUID.randomUUID();
 
-    private final AuthenticationServiceImpl service =
-            new AuthenticationServiceImpl(mock(UserService.class), userRepository, encoder, jwtService, PROPERTIES);
+    private final RefreshTokenService refreshTokenService = mock(RefreshTokenService.class);
+
+    private final AuthenticationServiceImpl service = new AuthenticationServiceImpl(
+            mock(UserService.class), userRepository, encoder, jwtService, PROPERTIES, refreshTokenService);
 
     @Test
     void rightCredentialsGiveAnAccessTokenForThatUser() {
         givenRegisteredUser(true);
+        when(refreshTokenService.create(any())).thenReturn("refresh-token-1");
 
-        LoginResponse response = service.login(loginRequest(EMAIL, PASSWORD));
+        AuthTokens response = service.login(loginRequest(EMAIL, PASSWORD));
 
-        assertThat(response.isAuthenticated()).isTrue();
-        assertThat(response.getTokenType()).isEqualTo("Bearer");
-        assertThat(response.getExpiresIn()).isEqualTo(900);
-        assertThat(jwtService.validateToken(response.getAccessToken())).isTrue();
-        JwtUser tokenUser = jwtService.getUserFromToken(response.getAccessToken());
+        assertThat(response.refreshToken()).isEqualTo("refresh-token-1");
+        assertThat(response.tokenType()).isEqualTo("Bearer");
+        assertThat(response.expiresIn()).isEqualTo(900);
+        assertThat(jwtService.validateToken(response.accessToken())).isTrue();
+        JwtUser tokenUser = jwtService.getUserFromToken(response.accessToken());
         assertThat(tokenUser.id()).isEqualTo(userId);
         assertThat(tokenUser.authorities()).containsExactly("ROLE_USER");
     }
@@ -68,6 +72,15 @@ class AuthenticationServiceImplLoginTest {
         givenRegisteredUser(true);
 
         assertInvalidCredentials(loginRequest(EMAIL, "wrong-password"));
+    }
+
+    @Test
+    void noRefreshTokenIsIssuedWhenTheLoginFails() {
+        givenRegisteredUser(true);
+
+        assertInvalidCredentials(loginRequest(EMAIL, "wrong-password"));
+
+        verify(refreshTokenService, never()).create(any());
     }
 
     @Test
