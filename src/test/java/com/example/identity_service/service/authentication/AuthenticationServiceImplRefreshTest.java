@@ -32,7 +32,8 @@ class AuthenticationServiceImplRefreshTest {
     private final RefreshTokenService refreshTokenService = mock(RefreshTokenService.class);
 
     private final AuthenticationServiceImpl service = new AuthenticationServiceImpl(
-            mock(UserService.class), mock(UserRepository.class), PasswordEncoderFactories.createDelegatingPasswordEncoder(),
+            mock(UserService.class), mock(UserRepository.class),
+            new PasswordChecker(PasswordEncoderFactories.createDelegatingPasswordEncoder()),
             jwtService, PROPERTIES, refreshTokenService);
 
     @Test

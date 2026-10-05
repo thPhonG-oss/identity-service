@@ -11,6 +11,9 @@ public enum ErrorCode {
     USER_NOT_FOUND(1001, HttpStatus.NOT_FOUND, "User not found"),
     // 1002 was USERNAME_ALREADY_EXISTS. Codes are part of the API, so the number is left unused.
     EMAIL_ALREADY_EXISTS(1003, HttpStatus.CONFLICT, "Email already exists"),
+    // The external account is already linked to another user, or this user already has another account of
+    // that provider. Nothing is changed.
+    IDENTITY_ALREADY_LINKED(1004, HttpStatus.CONFLICT, "This account cannot be linked"),
 
     // 2xxx: authentication and authorization
     // INVALID_CREDENTIALS must not reveal whether the email or the password was wrong.
@@ -21,6 +24,13 @@ public enum ErrorCode {
     TOKEN_EXPIRED(2005, HttpStatus.UNAUTHORIZED, "Token has expired"),
     // One code for unknown, expired, reused and revoked refresh tokens, so a client cannot tell them apart.
     INVALID_REFRESH_TOKEN(2006, HttpStatus.UNAUTHORIZED, "Refresh token is invalid or expired"),
+    // An ID token from an external provider (Google) that failed verification. The reason stays in the log.
+    INVALID_ID_TOKEN(2007, HttpStatus.UNAUTHORIZED, "Identity token is invalid"),
+    // The state kept between sending the user to a provider and receiving them back is missing, altered,
+    // expired, or belongs to another login.
+    INVALID_OAUTH_STATE(2008, HttpStatus.UNAUTHORIZED, "Login attempt is invalid or has expired"),
+    // The "link this account?" step the user was taken to is missing, altered or expired: start again.
+    INVALID_LINK_REQUEST(2009, HttpStatus.UNAUTHORIZED, "Link request is invalid or has expired"),
 
     // 9xxx: general
     INTERNAL_ERROR(9000, HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error"),
