@@ -49,7 +49,7 @@ class AuthenticationServiceImplLoginTest {
     private final RefreshTokenService refreshTokenService = mock(RefreshTokenService.class);
 
     private final AuthenticationServiceImpl service = new AuthenticationServiceImpl(
-            mock(UserService.class), userRepository, encoder, jwtService, PROPERTIES, refreshTokenService);
+            mock(UserService.class), userRepository, new PasswordChecker(encoder), jwtService, PROPERTIES, refreshTokenService);
 
     @Test
     void rightCredentialsGiveAnAccessTokenForThatUser() {
@@ -117,6 +117,60 @@ class AuthenticationServiceImplLoginTest {
         assertInvalidCredentials(loginRequest(EMAIL, "wrong-password"));
 
         verify(encoder).matches(eq("wrong-password"), anyString());
+    }
+
+    // ---- loginAs: a user already authenticated some other way, e.g. by Google -----------------------
+
+    @Test
+    void loginAsIssuesTheSameTokensWithoutAnyPassword() {
+        when(refreshTokenService.create(any())).thenReturn("refresh-for-google-user");
+        clearInvocations(encoder);
+        User googleUser = User.builder().id(userId).email(EMAIL).passwordHash(null)
+                .roles(Set.of(new Role((short) 1, RoleEnum.USER))).build();
+
+        AuthTokens tokens = service.loginAs(googleUser);
+
+        assertThat(tokens.refreshToken()).isEqualTo("refresh-for-google-user");
+        assertThat(tokens.tokenType()).isEqualTo("Bearer");
+        assertThat(jwtService.getUserFromToken(tokens.accessToken()).id()).isEqualTo(userId);
+        assertThat(jwtService.getUserFromToken(tokens.accessToken()).authorities()).containsExactly("ROLE_USER");
+        verify(encoder, never()).matches(anyString(), anyString());
+    }
+
+    @Test
+    void loginAsRefusesADisabledUser() {
+        User disabled = User.builder().id(userId).email(EMAIL).enabled(false).build();
+
+        assertThatThrownBy(() -> service.loginAs(disabled))
+                .isInstanceOfSatisfying(GeneralException.class,
+                        ex -> assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.INVALID_CREDENTIALS));
+
+        verify(refreshTokenService, never()).create(any());
+    }
+
+    // A user who signs in only with Google has no password. Password login must refuse them like any
+    // wrong password, and without a null hash reaching the encoder (that would throw instead).
+    @Test
+    void aUserWithoutAPasswordIsInvalidCredentialsAndTheEncoderIsStillUsed() {
+        User googleOnly = User.builder().id(userId).email(EMAIL).passwordHash(null).build();
+        when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(googleOnly));
+        clearInvocations(encoder);
+
+        assertInvalidCredentials(loginRequest(EMAIL, PASSWORD));
+
+        verify(encoder).matches(eq(PASSWORD), anyString());
+        verify(refreshTokenService, never()).create(any());
+    }
+
+    // An empty hash is just as unreadable for the encoder as a missing one, and would make it throw.
+    @Test
+    void aBlankPasswordHashIsTreatedAsNoPassword() {
+        for (String blank : new String[] { "", "   " }) {
+            User broken = User.builder().id(userId).email(EMAIL).passwordHash(blank).build();
+            when(userRepository.findByEmail(EMAIL)).thenReturn(Optional.of(broken));
+
+            assertInvalidCredentials(loginRequest(EMAIL, PASSWORD));
+        }
     }
 
     @Test

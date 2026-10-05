@@ -13,12 +13,9 @@ import com.example.identity_service.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.UUID;
 
 @Service
 @Slf4j
@@ -27,25 +24,20 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     private final UserService userService;
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final PasswordChecker passwordChecker;
     private final JwtService jwtService;
     private final JwtProperties jwtProperties;
     private final RefreshTokenService refreshTokenService;
 
-    // A valid hash of a random password nobody knows, made by the same encoder as real hashes so that
-    // checking against it costs the same. Used when the email does not exist, see login().
-    private final String unknownUserPasswordHash;
-
     public AuthenticationServiceImpl(UserService userService, UserRepository userRepository,
-            PasswordEncoder passwordEncoder, JwtService jwtService, JwtProperties jwtProperties,
+            PasswordChecker passwordChecker, JwtService jwtService, JwtProperties jwtProperties,
             RefreshTokenService refreshTokenService) {
         this.userService = userService;
         this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
+        this.passwordChecker = passwordChecker;
         this.jwtService = jwtService;
         this.jwtProperties = jwtProperties;
         this.refreshTokenService = refreshTokenService;
-        this.unknownUserPasswordHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
 
     @Override
@@ -61,24 +53,28 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public AuthTokens login(final LoginRequest loginRequest) {
         User user = userRepository.findByEmail(loginRequest.getEmail()).orElse(null);
 
-        // The password is checked on EVERY attempt, even when the email does not exist. Hashing is slow
-        // on purpose (about 100 ms for bcrypt); skipping it for an unknown email would make that answer
-        // much faster, and the response time alone would tell an attacker which emails are registered.
-        String hashToCheck = user != null ? user.getPasswordHash() : unknownUserPasswordHash;
-        boolean passwordMatches = passwordEncoder.matches(loginRequest.getPassword(), hashToCheck);
-
         // One error for every failure. The account state is checked only after the password, so a
         // disabled account is not revealed to someone who does not know the password either.
-        if (user == null) {
-            throw rejected("unknown email");
-        }
-        if (!passwordMatches) {
-            throw rejected("wrong password");
+        PasswordChecker.Result result = passwordChecker.check(user, loginRequest.getPassword());
+        switch (result) {
+            case UNKNOWN_USER -> throw rejected("unknown email");
+            case NO_PASSWORD -> throw rejected("account has no password");
+            case WRONG_PASSWORD -> throw rejected("wrong password");
+            case MATCH -> {
+            }
         }
         if (!user.isEnabled()) {
             throw rejected("account disabled");
         }
 
+        return tokensFor(user, refreshTokenService.create(user));
+    }
+
+    @Override
+    public AuthTokens loginAs(final User user) {
+        if (!user.isEnabled()) {
+            throw rejected("account disabled");
+        }
         return tokensFor(user, refreshTokenService.create(user));
     }
 

@@ -41,7 +41,8 @@ public class User {
     @Column(nullable = false)
     private String email;
 
-    @Column(name = "password_hash", nullable = false)
+    /** Null for a user who signs in only with an external provider (see UserIdentity). */
+    @Column(name = "password_hash")
     private String passwordHash;
 
     @Column(nullable = false)

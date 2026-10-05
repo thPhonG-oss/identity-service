@@ -16,6 +16,14 @@ spring:
     properties:
       hibernate:
         default_schema: identity
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            redirect-uri: ${REDIRECT_URI}
 
 app:
   security:
@@ -31,6 +39,9 @@ app:
     # Browser origins allowed to call the API (the SPA). None by default.
     cors:
       allowed-origins: []
+    oauth2:
+      # Where the browser is sent after a login with Google: the SPA. No default, like the secrets.
+      frontend-url: ${FRONTEND_URL}
 
 logging:
   level:

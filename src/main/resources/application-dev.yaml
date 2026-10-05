@@ -7,12 +7,20 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            redirect-uri: ${REDIRECT_URI:http://localhost:8080/api/v1/auth/oauth2/google/callback}
 
 app:
   security:
     jwt:
       # HS256 needs a secret of at least 32 bytes. This default is for local dev only.
-      secret: ${JWT_SECRET:dev-only-secret-change-me-at-least-32-bytes!!}
+      secret: ${JWT_SECRET:7d0ca860a013471c87c9df1eee840c77bd2e9fbaa1b4043812f420c8a0148098}
     # Local development runs over plain http, where a Secure cookie would not be stored by every browser.
     refresh-cookie:
       secure: false
@@ -21,6 +29,8 @@ app:
       allowed-origins:
         - http://localhost:5173
         - http://localhost:3000
+    oauth2:
+      frontend-url: ${FRONTEND_URL:http://localhost:5173}
 
 logging:
   level:
